@@ -2,7 +2,7 @@ from discord.ext import commands
 
 from connection import characters
 from functions import load_character
-from game import Character, in_db
+from game import Character
 from helpers import GameMode
 
 
@@ -19,7 +19,7 @@ class Player(commands.Cog):
             name = ctx.message.author.name
 
         # only create a new character if the user does not already have one
-        if not in_db(user_id):  # type: ignore
+        if not characters.count_documents({"_id": user_id}):
             character = Character(
                 **{
                     "name": name,
@@ -107,7 +107,9 @@ class Player(commands.Cog):
         elif increase == "defense" or increase == "def" or increase == "defence":
             increase = "defense"
         else:
-            await ctx.message.reply(f"The stat _*{increase}*_ dosen't exist.\nPlease specify a stat to increase (HP, ATTACK, DEFENSE)")
+            await ctx.message.reply(
+                f"The stat _*{increase}*_ dosen't exist.\nPlease specify a stat to increase (HP, ATTACK, DEFENSE)"
+            )
 
         success, new_level = character.level_up(increase)
         if success:

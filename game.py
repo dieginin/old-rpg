@@ -12,10 +12,6 @@ def str_to_class(classname: str):
     return getattr(sys.modules[__name__], classname)
 
 
-def in_db(user_id):
-    return characters.count_documents({"_id": user_id})
-
-
 # Living creatures
 class Actor:
     def __init__(
