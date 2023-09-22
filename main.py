@@ -13,6 +13,8 @@ async def on_ready():
     print(f"BOT {bot.user} connected to Discord!")
     print(f"MDB connected: {test()}")
     print(f"COG {await cog_loader(bot)} commands loaded")
+    print("CMD sincronizando")
+    print(f"CMD {len(await bot.tree.sync())} sincronizado")
 
 
 bot.run(f"{DISCORD_TOKEN}")
