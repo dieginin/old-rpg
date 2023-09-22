@@ -5,6 +5,7 @@ from typing import List
 
 from connection import characters
 from helpers import GameMode
+from models import Actor
 
 
 # Helper functions
@@ -13,39 +14,6 @@ def str_to_class(classname: str):
 
 
 # Living creatures
-class Actor:
-    def __init__(
-        self,
-        name: str,
-        hp: int,
-        max_hp: int,
-        attack: int,
-        defense: int,
-        xp: int,
-        gold: int,
-    ):
-        self.name = name
-        self.hp = hp
-        self.max_hp = max_hp
-        self.attack = attack
-        self.defense = defense
-        self.xp = xp
-        self.gold = gold
-
-    def fight(self, other):
-        defense = min(other.defense, 19)  # cap defense value
-        chance_to_hit = random.randint(0, 20 - defense)
-
-        if chance_to_hit:
-            damage = self.attack
-        else:
-            damage = 0
-
-        other.hp -= damage
-
-        return (self.attack, other.hp <= 0)  # (damage, fatal)
-
-
 class Character(Actor):
     level_cap = 10
 
