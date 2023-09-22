@@ -2,14 +2,14 @@ import discord
 from discord.ext import commands
 
 from config import DISCORD_TOKEN
-from db_conection import *
+from connection import characters
 from game import *
 
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
 
 # Helper functions
-def load_character(user_id):
+def load_character(user_id: str) -> Character:
     return Character(**list(characters.find({"_id": user_id}))[0]["character"])
 
 
@@ -19,7 +19,7 @@ MODE_COLOR = {
 }
 
 
-def status_embed(ctx, character):
+def status_embed(ctx, character) -> discord.Embed:
     mode_text = ""
 
     # Current mode
@@ -235,11 +235,11 @@ async def flee(ctx):
         )
     elif damage:
         await ctx.message.reply(
-            f"**{character.name}** flees the {enemy.name}, taking {damage} damage. HP: {character.hp}/{character.max_hp}"
+            f"**{character.name}** flees the {enemy.name}, taking {damage} damage. HP: {int(character.hp)}/{character.max_hp}"
         )
     else:
         await ctx.message.reply(
-            f"**{character.name}** flees the {enemy.name} with their life but not their dignity intact. HP: {character.hp}/{character.max_hp}"
+            f"**{character.name}** flees the {enemy.name} with their life but not their dignity intact. HP: {int(character.hp)}/{character.max_hp}"
         )
 
 

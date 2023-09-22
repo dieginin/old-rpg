@@ -2,12 +2,13 @@ import enum
 import random
 import sys
 from copy import deepcopy
+from typing import List
 
-from db_conection import *
+from connection import characters
 
 
 # Helper functions
-def str_to_class(classname):
+def str_to_class(classname: str):
     return getattr(sys.modules[__name__], classname)
 
 
@@ -19,7 +20,16 @@ class GameMode(enum.IntEnum):
 
 # Living creatures
 class Actor:
-    def __init__(self, name, hp, max_hp, attack, defense, xp, gold):
+    def __init__(
+        self,
+        name: str,
+        hp: int,
+        max_hp: int,
+        attack: int,
+        defense: int,
+        xp: int,
+        gold: int,
+    ):
         self.name = name
         self.hp = hp
         self.max_hp = max_hp
@@ -47,19 +57,19 @@ class Character(Actor):
 
     def __init__(
         self,
-        name,
-        hp,
-        max_hp,
-        attack,
-        defense,
-        mana,
-        level,
-        xp,
-        gold,
-        inventory,
-        mode,
+        name: str,
+        hp: int,
+        max_hp: int,
+        attack: int,
+        defense: int,
+        mana: int,
+        level: int,
+        xp: int,
+        gold: int,
+        inventory: List,
+        mode: GameMode,
         battling,
-        user_id,
+        user_id: int,
     ):
         super().__init__(name, hp, max_hp, attack, defense, xp, gold)
         self.level = level
@@ -90,9 +100,7 @@ class Character(Actor):
                 {"_id": self.user_id}, {"$set": {"character": character_dict}}
             )
         else:
-            characters.insert_one(
-                {"_id": self.user_id, "character": character_dict}
-            )
+            characters.insert_one({"_id": self.user_id, "character": character_dict})
 
     def fight(self, enemy):
         outcome = super().fight(enemy)
@@ -135,7 +143,7 @@ class Character(Actor):
         # Save to DB after state change
         self.save_to_db()
 
-        return (damage, self.hp <= 0)  # (damage, killed)
+        return (int(damage), self.hp <= 0)  # (damage, killed)
 
     def defeat(self, enemy):
         if self.level < self.level_cap:  # no more XP after hitting level cap
