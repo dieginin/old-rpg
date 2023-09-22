@@ -1,10 +1,10 @@
-import enum
 import random
 import sys
 from copy import deepcopy
 from typing import List
 
 from connection import characters
+from helpers import GameMode
 
 
 # Helper functions
@@ -12,10 +12,8 @@ def str_to_class(classname: str):
     return getattr(sys.modules[__name__], classname)
 
 
-# Game Modes
-class GameMode(enum.IntEnum):
-    ADVENTURE = 1
-    BATTLE = 2
+def in_db(user_id):
+    return characters.count_documents({"_id": user_id})
 
 
 # Living creatures
