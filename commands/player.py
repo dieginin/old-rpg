@@ -2,8 +2,8 @@ from discord.ext import commands
 
 from connection import characters
 from functions import load_character
-from game import Character
 from helpers import GameMode
+from models import Character
 
 
 class Player(commands.Cog):

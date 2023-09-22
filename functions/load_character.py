@@ -1,5 +1,5 @@
 from connection import characters
-from game import Character
+from models import Character
 
 
 def load_character(user_id: str) -> Character:

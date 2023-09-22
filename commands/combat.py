@@ -2,8 +2,8 @@ from discord.ext import commands
 
 from connection import characters
 from functions import load_character
-from game import Enemy
 from helpers import GameMode
+from models import Enemy
 
 
 class Combat(commands.Cog):

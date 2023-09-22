@@ -1,6 +1,6 @@
 import discord
 
-from game import Character
+from models import Character
 
 
 def inventory_embed(ctx, character: Character):
