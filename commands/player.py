@@ -1,3 +1,7 @@
+from typing import Optional
+
+import discord
+from discord import app_commands
 from discord.ext import commands
 
 from connection import characters
@@ -6,51 +10,94 @@ from helpers import GameMode
 from models import Character
 
 
+async def create_new_player(interaction: discord.Interaction, name=None, vocation=""):
+    user_id = interaction.user.id
+
+    # if no name is specified, use the creator's nickname
+    if not name:
+        name = interaction.user.name
+
+    if vocation == "Guerrero":
+        hp = 16
+        mana = 6
+        attack = 2
+        defense = 2
+    elif vocation == "Mago":
+        hp = 10
+        mana = 15
+        attack = 3
+        defense = 1
+    else:
+        hp = 10
+        mana = 10
+        attack = 1
+        defense = 1
+
+    character = Character(
+        **{
+            "name": name,
+            "vocation": vocation,
+            "hp": hp,
+            "max_hp": hp,
+            "attack": attack,
+            "defense": defense,
+            "mana": mana,
+            "max_mana": mana,
+            "level": 1,
+            "xp": 0,
+            "gold": 0,
+            "inventory": [],
+            "mode": GameMode.ADVENTURE,
+            "battling": None,
+            "user_id": user_id,
+        }
+    )
+    character.save_to_db()
+
+
 class Player(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.command(name="create", help="Create a character.")
-    async def create(self, ctx, name=None):
-        user_id = ctx.message.author.id
+    @app_commands.command(name="crear", description="Crear un nuevo personaje")
+    @app_commands.choices(
+        vocacion=[
+            app_commands.Choice(name="Guerrero", value="guerrero"),
+            app_commands.Choice(name="Mago", value="mago"),
+        ]
+    )
+    async def crear(
+        self,
+        interaction: discord.Interaction,
+        name: Optional[str],
+        vocacion: app_commands.Choice[str],
+    ):
+        await interaction.response.defer()
+
+        user_id = interaction.user.id
 
         # if no name is specified, use the creator's nickname
         if not name:
-            name = ctx.message.author.name
+            name = interaction.user.name
 
         # only create a new character if the user does not already have one
         if not characters.count_documents({"_id": user_id}):
-            character = Character(
-                **{
-                    "name": name,
-                    "hp": 16,
-                    "max_hp": 16,
-                    "attack": 2,
-                    "defense": 1,
-                    "mana": 0,
-                    "level": 1,
-                    "xp": 0,
-                    "gold": 0,
-                    "inventory": [],
-                    "mode": GameMode.ADVENTURE,
-                    "battling": None,
-                    "user_id": user_id,
-                }
-            )
-            character.save_to_db()
-            await ctx.message.reply(
-                f"New level 1 character created: **{name}**. Enter `!status` to see your stats."
+            await create_new_player(interaction, name, vocacion.name)
+
+            await interaction.followup.send(
+                f"Nuevo _{vocacion.value}_ nivel 1 creado: **{name}**. Entra a `/status` para ver tus estadísticas"
             )
         else:
-            await ctx.message.reply("You have already created your character.")
+            await interaction.followup.send("Ya tienes a un personaje creado")
 
-    @commands.command(name="die", help="Destroy current character.")
-    async def die(self, ctx):
-        user_id = ctx.message.author.id
+    @app_commands.command(name="morir", description="Asesinar a su personaje actual")
+    async def morir(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        user_id = interaction.user.id
 
         if not characters.count_documents({"_id": user_id}):
-            await ctx.message.reply(
-                f"You have no charatacter, first you need to create one with `!create`."
+            await interaction.followup.send(
+                "No tienes personaje, primero debes de crear uno con `/crear`"
             )
             return
 
@@ -58,83 +105,80 @@ class Player(commands.Cog):
 
         character.die()
 
-        await ctx.message.reply(
-            f"Character **{character.name}** is no more. Create a new one with `!create`."
+        await interaction.followup.send(
+            f"El personaje **{character.name}** ha sido eliminado. Crea uno nuevo con `/crear`"
         )
 
-    @commands.command(
+    @app_commands.command(
         name="levelup",
-        help="Advance to the next level. Specify a stat to increase (HP, ATTACK, DEFENSE).",
+        description="Avanza al siguiente nivel. Especifica la estadística a incrementar",
     )
-    async def levelup(self, ctx, increase=None):
-        user_id = ctx.message.author.id
+    @app_commands.choices(
+        increase=[
+            app_commands.Choice(name="Ataque", value="attack"),
+            app_commands.Choice(name="Defensa", value="defense"),
+            app_commands.Choice(name="Hp", value="max_hp"),
+            app_commands.Choice(name="Mana", value="max_mana"),
+        ],
+    )
+    async def levelup(
+        self, interaction: discord.Interaction, increase: app_commands.Choice[str]
+    ):
+        await interaction.response.defer()
+        user_id = interaction.user.id
 
         if not characters.count_documents({"_id": user_id}):
-            await ctx.message.reply(
-                f"You have no charatacter, first you need to create one with `!create`."
+            await interaction.followup.send(
+                "No tienes personaje, primero debes de crear uno con `/crear`"
             )
             return
 
         character = load_character(user_id)
 
         if character.mode != GameMode.ADVENTURE:
-            await ctx.message.reply("Can only call this command outside of battle!")
+            await interaction.followup.send(
+                "Solo puedes usar este comando fuera de una batalla!"
+            )
             return
 
         ready, xp_needed = character.ready_to_level_up()
         if not ready:
-            await ctx.message.reply(
-                f"You need another {xp_needed} to advance to level {character.level+1}"
+            await interaction.followup.send(
+                f"Necesitas {xp_needed} para subir al nivel {character.level+1}"
             )
             return
 
-        if not increase:
-            await ctx.message.reply(
-                "Please specify a stat to increase (HP, ATTACK, DEFENSE)"
-            )
-            return
-
-        increase = increase.lower()
-        if (
-            increase == "hp"
-            or increase == "hitpoints"
-            or increase == "max_hp"
-            or increase == "maxhp"
-        ):
-            increase = "max_hp"
-        elif increase == "attack" or increase == "att":
-            increase = "attack"
-        elif increase == "defense" or increase == "def" or increase == "defence":
-            increase = "defense"
-        else:
-            await ctx.message.reply(
-                f"The stat _*{increase}*_ dosen't exist.\nPlease specify a stat to increase (HP, ATTACK, DEFENSE)"
-            )
-
-        success, new_level = character.level_up(increase)
+        success, new_level = character.level_up(increase.value)
         if success:
-            await ctx.message.reply(
-                f"**{character.name}** advanced to level {new_level}, gaining 1 {increase.upper().replace('_', ' ')}."
+            await interaction.followup.send(
+                f"**{character.name}** subió al nivel {new_level}, ganando 1 punto de {increase.name.upper()}."
             )
         else:
-            await ctx.message.reply(f"**{character.name}** failed to level up.")
+            await interaction.followup.send(f"**{character.name}** failed to level up.")
 
-    @commands.command(
-        name="reset", help="[DEV] Destroy and recreate current character."
+    @app_commands.command(
+        name="reset", description="[DEV] Destruir y crear de nuevo el personaje actual"
     )
-    async def reset(self, ctx):
-        user_id = ctx.message.author.id
+    async def reset(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+
+        user_id = interaction.user.id
 
         if not characters.count_documents({"_id": user_id}):
-            await ctx.message.reply(
-                f"You have no charatacter, first you need to create one with `!create`."
+            await interaction.followup.send(
+                "No tienes personaje, primero debes de crear uno con `/crear`"
             )
             return
-
+        character = load_character(user_id)
+        name, vocation = character.name, character.vocation
         characters.delete_one({"_id": user_id})
 
-        await ctx.message.reply(f"Character deleted.")
-        await self.create(ctx)
+        await interaction.followup.send(f"Personaje borrado")
+
+        await create_new_player(interaction, name, vocation)
+        await interaction.channel.send(  # type: ignore
+            content=f"Nuevo _{vocation.lower()}_ nivel 1 creado: **{name}**. Entra a `/status` para ver tus estadísticas"
+        )
 
 
 async def setup(bot):
