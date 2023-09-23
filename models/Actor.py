@@ -25,10 +25,12 @@ class Actor:
         chance_to_hit = random.randint(0, 20 - defense)
 
         if chance_to_hit:
-            damage = self.attack
+            damage = random.randint(
+                self.attack - 1 if self.attack > 0 else 0, self.attack + 1
+            )
         else:
             damage = 0
 
         other.hp -= damage
 
-        return (self.attack, other.hp <= 0)  # (damage, fatal)
+        return (damage, other.hp <= 0)  # (damage, fatal)
