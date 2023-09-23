@@ -1,7 +1,7 @@
 import random
 import sys
 from copy import deepcopy
-from typing import List
+from typing import List, Literal
 
 from connection import characters
 from helpers import GameMode
@@ -20,11 +20,13 @@ class Character(Actor):
     def __init__(
         self,
         name: str,
+        vocation: Literal["Guerrero", "Mago"],
         hp: int,
         max_hp: int,
         attack: int,
         defense: int,
         mana: int,
+        max_mana: int,
         level: int,
         xp: int,
         gold: int,
@@ -34,8 +36,10 @@ class Character(Actor):
         user_id: int,
     ):
         super().__init__(name, hp, max_hp, attack, defense, xp, gold)
+        self.vocation = vocation
         self.level = level
         self.mana = mana
+        self.max_mana = max_mana
 
         self.inventory = inventory
 
